@@ -108,6 +108,15 @@ type Common struct {
 	// ratelimiting
 	RpsLimiter *rate.Limiter
 
+	// MaliciousPct is the percentage (0–100) of operations that should be
+	// replaced by intentionally malicious S3 requests for security testing.
+	// Zero disables malicious traffic generation.
+	MaliciousPct float64
+
+	// MaliciousConfig controls which categories of malicious traffic are
+	// generated and any category-specific parameters.
+	MaliciousConfig MaliciousConfig
+
 	// Transport used.
 	Transport http.RoundTripper
 

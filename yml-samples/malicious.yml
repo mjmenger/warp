@@ -1,0 +1,53 @@
+warp:
+  api: v1
+
+  # Benchmark to run.
+  # The malicious section can be combined with any benchmark type.
+  benchmark: get
+
+  remote:
+    region: us-east-1
+    access-key: 'Q3AM3UQ867SPQQA43P2F'
+    secret-key: 'zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG'
+    host:
+      - 'play.min.io'
+    tls: true
+
+  params:
+    duration: 1m
+    concurrent: 8
+    objects: 1000
+    obj:
+      size: 100KiB
+
+    # malicious controls adversarial S3 traffic injected into the benchmark.
+    #
+    # Malicious operations are recorded with OpType "MALICIOUS" so they can
+    # be isolated during post-benchmark analysis:
+    #
+    #   warp analyze --filter-op MALICIOUS warp-get-*.csv.zst
+    #
+    malicious:
+      # Percentage of total operations to replace with malicious requests.
+      # Range: [0, 100].  0 disables malicious traffic generation (default).
+      pct: 10
+
+      # Per-category enable flags.
+      # When ALL four are false (the default) every category is active.
+      # Set one or more to true to restrict generation to those categories only.
+
+      # Send requests with invalid bucket/object names, unknown HTTP verbs,
+      # oversized headers, or malformed auth signatures.
+      malformed: false
+
+      # Send requests with expired/invalid credentials, missing signatures,
+      # or fuzzed auth headers.
+      auth: false
+
+      # Request objects/buckets outside the test prefix to verify that
+      # authorization boundaries are enforced by the server.
+      access-control: false
+
+      # Issue extremely large uploads, tiny chunk sizes, or rapid-fire
+      # requests to attempt server-side resource exhaustion.
+      resource-exhaustion: false

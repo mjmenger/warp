@@ -286,6 +286,27 @@ var ioFlags = []cli.Flag{
 		Value: 0,
 		Usage: "Rate limit each instance to this number of requests per second (0 to disable)",
 	},
+	cli.Float64Flag{
+		Name:  "malicious",
+		Value: 0,
+		Usage: "Percentage (0-100) of operations to replace with intentionally malicious S3 requests for security testing (0 to disable)",
+	},
+	cli.BoolFlag{
+		Name:  "malicious.malformed",
+		Usage: "Enable the malformed-request category: invalid bucket/object names, bad HTTP methods, oversized headers (default: on when no categories are specified)",
+	},
+	cli.BoolFlag{
+		Name:  "malicious.auth",
+		Usage: "Enable the authentication-attack category: expired/invalid credentials, missing or fuzzed auth signatures (default: on when no categories are specified)",
+	},
+	cli.BoolFlag{
+		Name:  "malicious.access-control",
+		Usage: "Enable the access-control-probe category: requests outside the test prefix/bucket to verify authorization enforcement (default: on when no categories are specified)",
+	},
+	cli.BoolFlag{
+		Name:  "malicious.resource-exhaustion",
+		Usage: "Enable the resource-exhaustion category: very large uploads, tiny chunk sizes, rapid-fire requests (default: on when no categories are specified)",
+	},
 	cli.BoolFlag{
 		Name:   "stdout",
 		Usage:  "Send operations to stdout",
@@ -300,6 +321,26 @@ var ioFlags = []cli.Flag{
 		Usage: "Add checksum to uploaded object. Values: CRC64NVME, CRC32[-FO], CRC32C[-FO], SHA1 or SHA256. Requires server trailing headers (AWS, MinIO)",
 		Value: "",
 	},
+}
+
+// buildMaliciousCategories reads the per-category boolean flags and returns
+// the slice of enabled categories.  An empty slice means "all categories"
+// (i.e. none were explicitly selected).
+func buildMaliciousCategories(ctx *cli.Context) []bench.MaliciousCategory {
+	var cats []bench.MaliciousCategory
+	if ctx.Bool("malicious.malformed") {
+		cats = append(cats, bench.MaliciousMalformed)
+	}
+	if ctx.Bool("malicious.auth") {
+		cats = append(cats, bench.MaliciousAuth)
+	}
+	if ctx.Bool("malicious.access-control") {
+		cats = append(cats, bench.MaliciousAccessControl)
+	}
+	if ctx.Bool("malicious.resource-exhaustion") {
+		cats = append(cats, bench.MaliciousResourceExhaust)
+	}
+	return cats
 }
 
 func getCommon(ctx *cli.Context, src func() generator.Source) bench.Common {
@@ -358,8 +399,12 @@ func getCommon(ctx *cli.Context, src func() generator.Source) bench.Common {
 		DiscardOutput: noOps,
 		ExtraOut:      extra,
 		RpsLimiter:    rpsLimiter,
-		Transport:     clientTransport(ctx),
-		UpdateStatus:  statusln,
-		TotalClients:  1, // Default to 1 for single-client mode
+		MaliciousPct:  ctx.Float64("malicious"),
+		MaliciousConfig: bench.MaliciousConfig{
+			EnabledCategories: buildMaliciousCategories(ctx),
+		},
+		Transport:    clientTransport(ctx),
+		UpdateStatus: statusln,
+		TotalClients: 1, // Default to 1 for single-client mode
 	}
 }

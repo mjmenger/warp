@@ -136,6 +136,7 @@ func mainExec(ctx *cli.Context) error {
 		"server-profile":           "serverprof",
 		"bench-data":               "benchdata",
 		"autoterm.enabled":         "autoterm",
+		"malicious.pct":            "malicious",
 		"obj.versions":             "versions",
 		"obj.rand-size":            "obj.randsize",
 		"no-prefix":                "noprefix",
@@ -273,7 +274,7 @@ func parseDoc(doc map[string]any, prefixStack, printStack *[]string, setFlag fun
 	}
 	for k, v := range doc {
 		switch k {
-		case "analyze", "obj", "autoterm", "distribution":
+		case "analyze", "obj", "autoterm", "distribution", "malicious":
 			// These automatically adds the prefix to the flag name.
 			pop := push(prefixStack, k)
 			pop2 := push(printStack, k)
