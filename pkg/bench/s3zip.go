@@ -153,6 +153,11 @@ func (g *S3Zip) Start(ctx context.Context, wait chan struct{}) error {
 					return
 				}
 
+				if op := g.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
+				}
+
 				fbr := firstByteRecorder{}
 				obj := g.objects[rng.Intn(len(g.objects))]
 				client, cldone := g.Client()

@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -62,6 +63,7 @@ func (u *Append) Start(ctx context.Context, wait chan struct{}) error {
 
 			rcv := c.Receiver()
 			defer wg.Done()
+			rng := rand.New(rand.NewSource(int64(i)))
 
 			// Copy usermetadata and usertags per concurrent thread.
 			opts := u.PutOpts
@@ -96,6 +98,12 @@ func (u *Append) Start(ctx context.Context, wait chan struct{}) error {
 				if u.rpsLimit(ctx) != nil {
 					return
 				}
+
+				if op := u.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
+				}
+
 				obj := src.Object()
 				obj.Name = masterObj.Name
 				obj.Prefix = masterObj.Prefix

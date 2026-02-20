@@ -179,6 +179,7 @@ func (d *Delete) Start(ctx context.Context, wait chan struct{}) error {
 		go func(i int) {
 			rcv := c.Receiver()
 			defer wg.Done()
+			rng := rand.New(rand.NewSource(int64(i)))
 			done := ctx.Done()
 
 			<-wait
@@ -191,6 +192,11 @@ func (d *Delete) Start(ctx context.Context, wait chan struct{}) error {
 
 				if d.rpsLimit(ctx) != nil {
 					return
+				}
+
+				if op := d.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
 				}
 
 				// Fetch d.BatchSize objects

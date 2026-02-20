@@ -137,6 +137,7 @@ func (g *Versioned) Start(ctx context.Context, wait chan struct{}) error {
 		go func(i int) {
 			rcv := c.Receiver()
 			defer wg.Done()
+			rng := rand.New(rand.NewSource(int64(i)))
 			done := ctx.Done()
 			src := g.Source()
 			putOpts := g.PutOpts
@@ -153,6 +154,11 @@ func (g *Versioned) Start(ctx context.Context, wait chan struct{}) error {
 
 				if g.rpsLimit(ctx) != nil {
 					return
+				}
+
+				if op := g.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
 				}
 
 				operation := g.Dist.getOp()

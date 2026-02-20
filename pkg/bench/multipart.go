@@ -218,6 +218,11 @@ func (g *Multipart) Start(ctx context.Context, wait chan struct{}) error {
 					return
 				}
 
+				if op := g.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
+				}
+
 				fbr := firstByteRecorder{}
 				part := rng.Intn(len(g.objects))
 				obj := g.objects[part]

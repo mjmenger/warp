@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"path"
@@ -82,6 +83,7 @@ func (s *Snowball) Start(ctx context.Context, wait chan struct{}) error {
 			var buf bytes.Buffer
 			rcv := c.Receiver()
 			defer wg.Done()
+			rng := rand.New(rand.NewSource(int64(i)))
 			opts := s.PutOpts
 			opts.UserMetadata = map[string]string{"X-Amz-Meta-Snowball-Auto-Extract": "true"}
 			done := ctx.Done()
@@ -96,6 +98,11 @@ func (s *Snowball) Start(ctx context.Context, wait chan struct{}) error {
 
 				if s.rpsLimit(ctx) != nil {
 					return
+				}
+
+				if op := s.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
 				}
 
 				buf.Reset()

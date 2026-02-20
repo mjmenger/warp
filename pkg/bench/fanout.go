@@ -20,6 +20,7 @@ package bench
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -59,6 +60,7 @@ func (u *Fanout) Start(ctx context.Context, wait chan struct{}) error {
 		go func(i int) {
 			rcv := c.Receiver()
 			defer wg.Done()
+			rng := rand.New(rand.NewSource(int64(i)))
 			opts := minio.PutObjectFanOutRequest{
 				Entries:  make([]minio.PutObjectFanOutEntry, u.Copies),
 				Checksum: minio.Checksum{},
@@ -73,6 +75,12 @@ func (u *Fanout) Start(ctx context.Context, wait chan struct{}) error {
 					return
 				default:
 				}
+
+				if op := u.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
+				}
+
 				obj := src.Object()
 				for i := range opts.Entries {
 					opts.Entries[i] = minio.PutObjectFanOutEntry{

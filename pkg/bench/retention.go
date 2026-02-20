@@ -172,6 +172,11 @@ func (g *Retention) Start(ctx context.Context, wait chan struct{}) error {
 					return
 				}
 
+				if op := g.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
+				}
+
 				obj := g.objects[rng.Intn(len(g.objects))]
 				client, cldone := g.Client()
 				op := Operation{

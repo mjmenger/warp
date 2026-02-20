@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"math/rand"
 	"mime/multipart"
 	"net/http"
 	"sync"
@@ -70,6 +71,7 @@ func (u *Put) Start(ctx context.Context, wait chan struct{}) error {
 		go func(i int) {
 			rcv := c.Receiver()
 			defer wg.Done()
+			rng := rand.New(rand.NewSource(int64(i)))
 
 			// Copy usermetadata and usertags per concurrent thread.
 			opts := u.PutOpts
@@ -90,6 +92,11 @@ func (u *Put) Start(ctx context.Context, wait chan struct{}) error {
 
 				if u.rpsLimit(ctx) != nil {
 					return
+				}
+
+				if op := u.MaybeExecMalicious(nonTerm, rng, uint32(i)); op != nil {
+					rcv <- *op
+					continue
 				}
 
 				obj := src.Object()

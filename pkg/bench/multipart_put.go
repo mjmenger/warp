@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -37,8 +38,15 @@ func (g *MultipartPut) Start(ctx context.Context, wait chan struct{}) error {
 		thread := uint32(i)
 		eg.Go(func() error {
 			<-wait
+			rng := rand.New(rand.NewSource(int64(thread)))
+			nonTerm := context.Background()
 
 			for ctx.Err() == nil {
+				if op := g.MaybeExecMalicious(nonTerm, rng, thread); op != nil {
+					g.Collector.Receiver() <- *op
+					continue
+				}
+
 				objectName := g.Source().Object().Name
 
 				uploadID, err := g.createMultupartUpload(ctx, objectName)
