@@ -29,7 +29,7 @@ import (
 // be filtered separately during analysis.
 const MaliciousOpType = "MALICIOUS"
 
-// MaliciousCategory identifies the class of adversarial behaviour to simulate.
+// MaliciousCategory identifies the class of adversarial behavior to simulate.
 type MaliciousCategory string
 
 const (
