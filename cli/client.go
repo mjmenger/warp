@@ -292,7 +292,7 @@ func parseHosts(h string, resolveDNS bool) []string {
 			if port == "" {
 				resolved = append(resolved, ip.String())
 			} else {
-				resolved = append(resolved, ip.String()+":"+port)
+				resolved = append(resolved, net.JoinHostPort(ip.String(), port))
 			}
 		}
 	}
