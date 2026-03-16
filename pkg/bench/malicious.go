@@ -19,6 +19,7 @@ package bench
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -158,14 +159,25 @@ func execAuthAttack(_ context.Context, _ *minio.Client, _ string, _ uint32) Oper
 // benchmark prefix/bucket to verify that authorization boundaries are
 // enforced, and returns the recorded Operation.
 //
-// TODO: implement.
-func execAccessControlProbe(_ context.Context, _ *minio.Client, _ string, _ uint32) Operation {
-	start := time.Now()
-	return Operation{
-		Start: start,
-		End:   time.Now(),
-		Err:   "not implemented: access-control-probe",
+// It issues a StatObject against a randomly-generated bucket name that is
+// guaranteed not to be the benchmark bucket.  A correctly-configured server
+// must respond with AccessDenied or NoSuchBucket; a 200 response indicates a
+// misconfigured authorization boundary.
+func execAccessControlProbe(ctx context.Context, client *minio.Client, _ string, thread uint32) Operation {
+	probeBucket := fmt.Sprintf("warp-probe-%08x", rand.Uint32())
+	probeKey := fmt.Sprintf("probe/%d", thread)
+
+	op := Operation{
+		File:     probeBucket + "/" + probeKey,
+		ObjPerOp: 1,
 	}
+	op.Start = time.Now()
+	_, err := client.StatObject(ctx, probeBucket, probeKey, minio.StatObjectOptions{})
+	op.End = time.Now()
+	if err != nil {
+		op.Err = err.Error()
+	}
+	return op
 }
 
 // execResourceExhaustion attempts to exhaust server-side resources (e.g. via
